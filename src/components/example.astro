@@ -1,0 +1,118 @@
+---
+const { expression, data } = Astro.props;
+---
+
+<script is:inline
+  type="text/javascript"
+  src="https://jmespath.blob.core.windows.net/lib/v1.1.4/jmespath.umd.min.js"
+  integrity="sha384-j6O40Ai4K7WYsLIPv7PVGVN4i8M+DP244ldsCxzfKQAUOuVR+S5ZR3mZr0z6OOGt"
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer">
+</script>
+
+<jmespath-example
+  placeholder="expression"
+  data-expression={expression}
+  data-input={data}
+  >
+  <div style="width: 480px;">
+    <form>
+      <div style="width: 100%;">
+        <!-- TODO: add search icon
+        <span class="glyphicon glyphicon-search">::before</span>
+        -->
+        <input type="text"
+          style="width: 100%;"
+          jmespath-expression
+        />
+      </div>
+      <br />
+
+	    <textarea class="textarea"
+        style="width: 100%;"
+        json-document
+      /><br />
+
+    </form>
+
+    <div style="width: 100%;">
+      <span>Result</span>
+      <textarea
+        disabled="true"
+        style="width: 100%;"
+        jmespath-result
+      />
+    </div>
+
+  </div>
+
+</jmespath-example>
+
+<script>
+  interface OnTimeoutHandler {
+    (): void;
+  }
+  class Example extends HTMLElement {
+    constructor() {
+
+      super();
+    }
+    connectedCallback(): void {
+
+      const _this: Example = this;
+
+      const input: HTMLInputElement = this.querySelectorAll('[jmespath-expression]')[0];
+      const textAreaInput: HTMLTextAreaElement = this.querySelectorAll('[json-document]')[0];
+      const textAreaOutput: HTMLTextAreaElement = this.querySelectorAll('[jmespath-result]')[0];
+
+      const delayInMilliseconds: number = 800;
+
+      const onTimeout = () => {
+        const expression: string = input.value;
+        const data: JSONValue = JSON.parse(textAreaInput.value);
+        const result: JSONValue = jmespath.search(data, expression);
+        
+        _this.prettyPrint(textAreaInput);
+        _this.prettyPrintJSON(textAreaOutput, result);
+      }
+
+      _this.setTimeout(input, delayInMilliseconds, onTimeout);
+      _this.setTimeout(textAreaInput, delayInMilliseconds, onTimeout);
+      
+      input.value = this.dataset.expression;
+      textAreaInput.value = this.dataset.input;
+      onTimeout();
+    }
+    setTimeout(element: HTMLElement, timeout: number, onTimeout: OnTimeoutHandler) {
+      
+      let _timeout = null;
+      element.addEventListener('keyup', function (e) {
+        clearTimeout(_timeout);
+        _timeout = setTimeout(onTimeout, timeout);
+      });
+    }
+    prettyPrint(textArea: HTMLTextAreaElement): void  {
+
+      const ugly: string = textArea.value;
+      const obj = JSON.parse(ugly);
+      this.prettyPrintJSON(textArea, obj);
+    }
+    prettyPrintJSON(textArea: HTMLTextAreaElement, json: JSONValue): void  {
+      
+      const pretty: string = JSON.stringify(json, undefined, 4);
+      textArea.value = pretty;
+
+      // auto expand height
+      textArea.style.height = 'auto';
+      textArea.style.height = `${textArea.scrollHeight}px`; 
+    }
+  }
+
+  customElements.define('jmespath-example', Example);
+</script>
+
+<style>
+  .glyphicon-search::before {
+    content: "\e003";
+  }
+</style>
